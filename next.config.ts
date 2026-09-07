@@ -1,7 +1,20 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Parent folder has its own package.json, so Turbopack otherwise treats that
+  // as the workspace root and fails to resolve tailwindcss from this project.
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
+  outputFileTracingRoot: path.resolve(__dirname),
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "res.cloudinary.com" },
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "firebasestorage.googleapis.com" },
+    ],
+  },
 };
 
 export default nextConfig;

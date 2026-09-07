@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+    function isMember(wid) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/workspaces/$(wid)/members/$(request.auth.uid));
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create, update: if isSelf(uid);
+      match /workspaces/{wid} {
+        allow read, write: if isSelf(uid);
+      }
+    }
+
+    match /workspaces/{wid} {
+      allow read: if isMember(wid);
+      allow create: if signedIn();
+      allow update: if isMember(wid);
+
+      match /members/{uid} {
+        allow read: if isMember(wid) || signedIn();
+        allow create: if signedIn();
+        allow update, delete: if isMember(wid);
+      }
+
+      match /channels/{cid} {
+        allow read, write: if isMember(wid);
+        match /members/{uid} {
+          allow read, write: if isMember(wid);
+        }
+        match /messages/{mid} {
+          allow read, write: if isMember(wid);
+          match /replies/{rid} {
+            allow read, write: if isMember(wid);
+          }
+        }
+      }
+
+      match /dms/{did} {
+        allow read, write: if isMember(wid);
+        match /messages/{mid} {
+          allow read, write: if isMember(wid);
+        }
+      }
+
+      match /apiKeys/{kid} {
+        allow read, write: if isMember(wid);
+      }
+    }
+
+    match /invites/{id} {
+      allow read, create, update: if signedIn();
+    }
+
+    match /apiKeyIndex/{hash} {
+      allow read, write: if signedIn();
+    }
+  }
+}
